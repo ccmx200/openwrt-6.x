@@ -1,0 +1,301 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+/* Copyright (c) 2025-2026, cuicanmx <arl96075@163.com> */
+
+/dts-v1/;
+
+#include "ipq8074.dtsi"
+#include "ipq8074-hk-cpu.dtsi"
+#include "ipq8074-ess.dtsi"
+#include "ipq8074-nss.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	model = "Salvage-1";
+	compatible = "cuicanmx,salvage-1", "qcom,ipq8074";
+
+	aliases {
+		serial0 = &blsp1_uart5;
+		ethernet0 = &dp5;
+		ethernet1 = &dp3;
+		ethernet2 = &dp2;
+		ethernet3 = &dp1;
+		label-mac-device = &dp5;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs-append = " root=/dev/ubiblock0_1";
+	};
+};
+
+&tlmm {
+	mdio_pins: mdio-pins {
+		mdc {
+			pins = "gpio68";
+			function = "mdc";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+		mdio {
+			pins = "gpio69";
+			function = "mdio";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+	};
+};
+
+&blsp1_uart5 { status = "okay"; };
+&prng { status = "okay"; };
+&cryptobam { status = "okay"; };
+&crypto { status = "okay"; };
+&qpic_bam { status = "okay"; };
+
+&qpic_nand {
+	status = "okay";
+
+	nand@0 {
+		reg = <0>;
+		nand-ecc-strength = <8>;
+		nand-ecc-step-size = <512>;
+		nand-bus-width = <8>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			// --- 所有底层固件分区（只读） ---
+			partition@0 {
+				label = "0:SBL1";
+				reg = <0x00000000 0x00050000>;
+				read-only;
+			};
+			partition@50000 {
+				label = "0:MIBIB";
+				reg = <0x00050000 0x00010000>;
+				read-only;
+			};
+			partition@60000 {
+				label = "0:BOOTCONFIG";
+				reg = <0x00060000 0x00020000>;
+				read-only;
+			};
+			partition@80000 {
+				label = "0:BOOTCONFIG1";
+				reg = <0x00080000 0x00020000>;
+				read-only;
+			};
+			partition@a0000 {
+				label = "0:QSEE";
+				reg = <0x000a0000 0x00180000>;
+				read-only;
+			};
+			partition@220000 {
+				label = "0:QSEE_1";
+				reg = <0x00220000 0x00180000>;
+				read-only;
+			};
+			partition@3a0000 {
+				label = "0:DEVCFG";
+				reg = <0x003a0000 0x00010000>;
+				read-only;
+			};
+			partition@3b0000 {
+				label = "0:DEVCFG_1";
+				reg = <0x003b0000 0x00010000>;
+				read-only;
+			};
+			partition@3c0000 {
+				label = "0:APDP";
+				reg = <0x003c0000 0x00010000>;
+				read-only;
+			};
+			partition@3d0000 {
+				label = "0:APDP_1";
+				reg = <0x003d0000 0x00010000>;
+				read-only;
+			};
+			partition@3e0000 {
+				label = "0:RPM";
+				reg = <0x003e0000 0x00040000>;
+				read-only;
+			};
+			partition@420000 {
+				label = "0:RPM_1";
+				reg = <0x00420000 0x00040000>;
+				read-only;
+			};
+			partition@460000 {
+				label = "0:CDT";
+				reg = <0x00460000 0x00010000>;
+				read-only;
+			};
+			partition@470000 {
+				label = "0:CDT_1";
+				reg = <0x00470000 0x00010000>;
+				read-only;
+			};
+			partition@480000 {
+				label = "0:APPSBLENV";
+				reg = <0x00480000 0x00010000>;
+			};
+			partition@490000 {
+				label = "0:APPSBL";
+				reg = <0x00490000 0x000a0000>;
+				read-only;
+			};
+			partition@530000 {
+				label = "0:APPSBL_1";
+				reg = <0x00530000 0x000a0000>;
+				read-only;
+			};
+
+			// --- ART 分区（含 MAC 和校准数据） ---
+			partition@5d0000 {
+				label = "0:ART";
+				reg = <0x005d0000 0x00040000>;
+				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_dp1: macaddr@0 { reg = <0x0 0x6>; };
+					macaddr_dp2: macaddr@6 { reg = <0x6 0x6>; };
+					macaddr_dp3: macaddr@c { reg = <0xc 0x6>; };
+					macaddr_dp5: macaddr@18 { reg = <0x18 0x6>; };
+
+					caldata: caldata@20000 {
+						reg = <0x20000 0x20000>;
+					};
+				};
+			};
+
+			partition@610000 {
+				label = "0:ETHPHYFW";
+				reg = <0x00610000 0x00080000>;
+				read-only;
+			};
+
+			// --- 巨大的 rootfs，吞并原 mtd20~mtd26 ---
+			partition@690000 {
+				label = "rootfs";
+				reg = <0x00690000 0x0f970000>;
+			};
+		};
+	};
+};
+
+/* eMMC 控制器 (已验证 HS400) */
+&sdhc_1 {
+	status = "okay";
+	mmc-ddr-1_8v;
+	mmc-hs200-1_8v;
+	mmc-hs400-1_8v;
+	max-frequency = <192000000>;
+};
+
+&qusb_phy_0 { status = "okay"; };
+&ssphy_0 { status = "okay"; };
+&usb_0 { status = "okay"; };
+
+&mdio {
+	status = "okay";
+	pinctrl-0 = <&mdio_pins>;
+	pinctrl-names = "default";
+	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
+
+	ethernet-phy-package@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "qcom,qca8075-package";
+		reg = <0>;
+		qcom,package-mode = "qsgmii";
+
+		qca8075_0: ethernet-phy@0 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <0>;
+		};
+		qca8075_1: ethernet-phy@1 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <1>;
+		};
+		qca8075_2: ethernet-phy@2 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <2>;
+		};
+	};
+
+	qca8081: ethernet-phy@18 {
+		compatible = "ethernet-phy-id004d.d101";
+		reg = <18>;
+		reset-deassert-us = <10000>;
+		reset-gpios = <&tlmm 44 GPIO_ACTIVE_LOW>;
+	};
+};
+
+&switch {
+	status = "okay";
+
+	switch_lan_bmp = <(ESS_PORT1 | ESS_PORT2 | ESS_PORT3)>;
+	switch_wan_bmp = <ESS_PORT5>;
+	switch_mac_mode = <MAC_MODE_QSGMII>;
+	switch_mac_mode1 = <MAC_MODE_SGMII_PLUS>;
+
+	qcom,port_phyinfo {
+		port@1 { port_id = <1>; phy_address = <0>; };
+		port@2 { port_id = <2>; phy_address = <1>; };
+		port@3 { port_id = <3>; phy_address = <2>; };
+		port@5 { port_id = <5>; phy_address = <18>; port_mac_sel = "QGMAC_PORT"; };
+	};
+};
+
+&edma { status = "okay"; };
+
+// --- 网络接口，从 ART 分区提取 MAC 地址 ---
+&dp1 {
+	status = "okay";
+	phy-mode = "qsgmii";
+	phy-handle = <&qca8075_0>;
+	label = "lan3";
+	nvmem-cells = <&macaddr_dp1>;
+	nvmem-cell-names = "mac-address";
+};
+
+&dp2 {
+	status = "okay";
+	phy-mode = "qsgmii";
+	phy-handle = <&qca8075_1>;
+	label = "lan2";
+	nvmem-cells = <&macaddr_dp2>;
+	nvmem-cell-names = "mac-address";
+};
+
+&dp3 {
+	status = "okay";
+	phy-mode = "qsgmii";
+	phy-handle = <&qca8075_2>;
+	label = "lan1";
+	nvmem-cells = <&macaddr_dp3>;
+	nvmem-cell-names = "mac-address";
+};
+
+&dp5 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&qca8081>;
+	label = "wan";
+	nvmem-cells = <&macaddr_dp5>;
+	nvmem-cell-names = "mac-address";
+};
+
+// --- Wi‑Fi：使用 board-2.bin，校准数据直接来自 ART ---
+&wifi {
+	status = "okay";
+	qcom,ath11k-board-id = <255>;
+	qcom,ath11k-calibration-variant = "Salvage-1";
+	nvmem-cells = <&caldata>;
+	nvmem-cell-names = "calibration";
+};
