@@ -51,7 +51,135 @@
 &crypto { status = "okay"; };
 &qpic_bam { status = "okay"; };
 
-/* NAND：整个 256 MiB 全部作为 rootfs，不再定义任何子分区 */
+/* ========== SPI NOR 闪存（8 MiB，包含启动与 ART 分区） ========== */
+&blsp1_spi1 {
+	status = "okay";
+
+	flash@0 {
+		reg = <0>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <50000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "0:SBL1";
+				reg = <0x0 0x50000>;
+				read-only;
+			};
+			partition@50000 {
+				label = "0:MIBIB";
+				reg = <0x50000 0x10000>;
+				read-only;
+			};
+			partition@60000 {
+				label = "0:BOOTCONFIG";
+				reg = <0x60000 0x20000>;
+				read-only;
+			};
+			partition@80000 {
+				label = "0:BOOTCONFIG1";
+				reg = <0x80000 0x20000>;
+				read-only;
+			};
+			partition@a0000 {
+				label = "0:QSEE";
+				reg = <0xa0000 0x180000>;
+				read-only;
+			};
+			partition@220000 {
+				label = "0:QSEE_1";
+				reg = <0x220000 0x180000>;
+				read-only;
+			};
+			partition@3a0000 {
+				label = "0:DEVCFG";
+				reg = <0x3a0000 0x10000>;
+				read-only;
+			};
+			partition@3b0000 {
+				label = "0:DEVCFG_1";
+				reg = <0x3b0000 0x10000>;
+				read-only;
+			};
+			partition@3c0000 {
+				label = "0:APDP";
+				reg = <0x3c0000 0x10000>;
+				read-only;
+			};
+			partition@3d0000 {
+				label = "0:APDP_1";
+				reg = <0x3d0000 0x10000>;
+				read-only;
+			};
+			partition@3e0000 {
+				label = "0:RPM";
+				reg = <0x3e0000 0x40000>;
+				read-only;
+			};
+			partition@420000 {
+				label = "0:RPM_1";
+				reg = <0x420000 0x40000>;
+				read-only;
+			};
+			partition@460000 {
+				label = "0:CDT";
+				reg = <0x460000 0x10000>;
+				read-only;
+			};
+			partition@470000 {
+				label = "0:CDT_1";
+				reg = <0x470000 0x10000>;
+				read-only;
+			};
+			partition@480000 {
+				label = "0:APPSBLENV";
+				reg = <0x480000 0x10000>;
+			};
+			partition@490000 {
+				label = "0:APPSBL";
+				reg = <0x490000 0xa0000>;
+				read-only;
+			};
+			partition@530000 {
+				label = "0:APPSBL_1";
+				reg = <0x530000 0xa0000>;
+				read-only;
+			};
+			/* ART 分区：包含 MAC 和 Wi‑Fi 校准 */
+			partition@5d0000 {
+				label = "0:ART";
+				reg = <0x5d0000 0x40000>;
+				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_dp1: macaddr@0 { reg = <0x0 0x6>; };
+					macaddr_dp2: macaddr@6 { reg = <0x6 0x6>; };
+					macaddr_dp3: macaddr@c { reg = <0xc 0x6>; };
+					macaddr_dp5: macaddr@18 { reg = <0x18 0x6>; };
+
+					caldata: caldata@20000 {
+						reg = <0x20000 0x20000>;
+					};
+				};
+			};
+			partition@610000 {
+				label = "0:ETHPHYFW";
+				reg = <0x610000 0x80000>;
+				read-only;
+			};
+		};
+	};
+};
+
+/* ========== NAND 闪存（256 MiB 全部作为 rootfs） ========== */
 &qpic_nand {
 	status = "okay";
 
@@ -74,7 +202,7 @@
 	};
 };
 
-/* eMMC 控制器 (已验证 HS400) */
+/* ========== eMMC 控制器（已验证 HS400） ========== */
 &sdhc_1 {
 	status = "okay";
 	mmc-ddr-1_8v;
@@ -87,6 +215,7 @@
 &ssphy_0 { status = "okay"; };
 &usb_0 { status = "okay"; };
 
+/* ========== 网络部分 ========== */
 &mdio {
 	status = "okay";
 	pinctrl-0 = <&mdio_pins>;
@@ -140,12 +269,14 @@
 
 &edma { status = "okay"; };
 
-/* 网络接口：不再从 ART 读取 MAC，让驱动自动生成随机 MAC */
+/* 网络接口，从 ART 分区获取 MAC 地址 */
 &dp1 {
 	status = "okay";
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_0>;
 	label = "lan3";
+	nvmem-cells = <&macaddr_dp1>;
+	nvmem-cell-names = "mac-address";
 };
 
 &dp2 {
@@ -153,6 +284,8 @@
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_1>;
 	label = "lan2";
+	nvmem-cells = <&macaddr_dp2>;
+	nvmem-cell-names = "mac-address";
 };
 
 &dp3 {
@@ -160,6 +293,8 @@
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_2>;
 	label = "lan1";
+	nvmem-cells = <&macaddr_dp3>;
+	nvmem-cell-names = "mac-address";
 };
 
 &dp5 {
@@ -167,9 +302,14 @@
 	phy-mode = "sgmii";
 	phy-handle = <&qca8081>;
 	label = "wan";
+	nvmem-cells = <&macaddr_dp5>;
+	nvmem-cell-names = "mac-address";
 };
 
+/* ========== Wi‑Fi（通过 nvmem 直接读取 ART 校准） ========== */
 &wifi {
 	status = "okay";
 	qcom,ath11k-calibration-variant = "Salvage-1";
+	nvmem-cells = <&caldata>;
+	nvmem-cell-names = "calibration";
 };
