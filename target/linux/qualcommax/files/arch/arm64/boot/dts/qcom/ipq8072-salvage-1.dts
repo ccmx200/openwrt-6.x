@@ -51,7 +51,6 @@
 &crypto { status = "okay"; };
 &qpic_bam { status = "okay"; };
 
-/* ========== SPI NOR 闪存（8 MiB，包含启动与 ART 分区） ========== */
 &blsp1_spi1 {
 	status = "okay";
 
@@ -149,26 +148,10 @@
 				reg = <0x530000 0xa0000>;
 				read-only;
 			};
-			/* ART 分区：包含 MAC 和 Wi‑Fi 校准 */
 			partition@5d0000 {
 				label = "0:ART";
 				reg = <0x5d0000 0x40000>;
 				read-only;
-
-				nvmem-layout {
-					compatible = "fixed-layout";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					macaddr_dp1: macaddr@0 { reg = <0x0 0x6>; };
-					macaddr_dp2: macaddr@6 { reg = <0x6 0x6>; };
-					macaddr_dp3: macaddr@c { reg = <0xc 0x6>; };
-					macaddr_dp5: macaddr@18 { reg = <0x18 0x6>; };
-
-					caldata: caldata@20000 {
-						reg = <0x20000 0x20000>;
-					};
-				};
 			};
 			partition@610000 {
 				label = "0:ETHPHYFW";
@@ -179,7 +162,6 @@
 	};
 };
 
-/* ========== NAND 闪存（256 MiB 全部作为 rootfs） ========== */
 &qpic_nand {
 	status = "okay";
 
@@ -196,13 +178,12 @@
 
 			partition@0 {
 				label = "rootfs";
-				reg = <0x0 0x10000000>;	/* 256 MiB，从 0x0 开始 */
+				reg = <0x0 0x10000000>;
 			};
 		};
 	};
 };
 
-/* ========== eMMC 控制器（已验证 HS400） ========== */
 &sdhc_1 {
 	status = "okay";
 	mmc-ddr-1_8v;
@@ -215,7 +196,6 @@
 &ssphy_0 { status = "okay"; };
 &usb_0 { status = "okay"; };
 
-/* ========== 网络部分 ========== */
 &mdio {
 	status = "okay";
 	pinctrl-0 = <&mdio_pins>;
@@ -269,14 +249,11 @@
 
 &edma { status = "okay"; };
 
-/* 网络接口，从 ART 分区获取 MAC 地址 */
 &dp1 {
 	status = "okay";
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_0>;
 	label = "lan3";
-	nvmem-cells = <&macaddr_dp1>;
-	nvmem-cell-names = "mac-address";
 };
 
 &dp2 {
@@ -284,8 +261,6 @@
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_1>;
 	label = "lan2";
-	nvmem-cells = <&macaddr_dp2>;
-	nvmem-cell-names = "mac-address";
 };
 
 &dp3 {
@@ -293,8 +268,6 @@
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_2>;
 	label = "lan1";
-	nvmem-cells = <&macaddr_dp3>;
-	nvmem-cell-names = "mac-address";
 };
 
 &dp5 {
@@ -302,14 +275,9 @@
 	phy-mode = "sgmii";
 	phy-handle = <&qca8081>;
 	label = "wan";
-	nvmem-cells = <&macaddr_dp5>;
-	nvmem-cell-names = "mac-address";
 };
 
-/* ========== Wi‑Fi（通过 nvmem 直接读取 ART 校准） ========== */
 &wifi {
 	status = "okay";
 	qcom,ath11k-calibration-variant = "Salvage-1";
-	nvmem-cells = <&caldata>;
-	nvmem-cell-names = "calibration";
 };
