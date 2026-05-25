@@ -8,6 +8,8 @@
 #include "ipq8074-ess.dtsi"
 #include "ipq8074-nss.dtsi"
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "Salvage-1";
@@ -26,6 +28,16 @@
 		stdout-path = "serial0:115200n8";
 		bootargs-append = " root=/dev/ubiblock0_1";
 	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "reset";
+			gpios = <&tlmm 34 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+	};
 };
 
 &tlmm {
@@ -42,6 +54,56 @@
 			drive-strength = <8>;
 			bias-pull-up;
 		};
+		/* WLAN 射频使能，原厂 DTS 的 mux_2，必须上拉 */
+		wlan_en {
+			pins = "gpio25";
+			function = "gpio";
+			bias-pull-up;
+		};
+	};
+
+	/* SPI NOR 引脚 */
+	spi1_pins: spi1-pins {
+		mux {
+			pins = "gpio42", "gpio43", "gpio44", "gpio45";
+			function = "blsp1_spi";
+			drive-strength = <8>;
+			bias-disable;
+		};
+	};
+
+	/* SD 卡检测引脚 */
+	sd_pins: sd-pins {
+		mux {
+			pins = "gpio63";
+			function = "sd_card";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+	};
+
+	/* PCIe0 引脚 */
+	pcie0_pins: pcie0-pins {
+		pcie0_rst {
+			pins = "gpio58";
+			function = "pcie0_rst";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		pcie0_wake {
+			pins = "gpio59";
+			function = "pcie0_wake";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+	};
+
+	/* GPIO25 强制输出高，确保 Wi-Fi 始终使能 */
+	wlan_en_hog: wlan-en-hog {
+		gpio-hog;
+		gpios = <25 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "wlan-en";
 	};
 };
 
@@ -51,8 +113,11 @@
 &crypto { status = "okay"; };
 &qpic_bam { status = "okay"; };
 
+/* SPI NOR 闪存（8 MiB） */
 &blsp1_spi1 {
 	status = "okay";
+	pinctrl-0 = <&spi1_pins>;
+	pinctrl-names = "default";
 
 	flash@0 {
 		reg = <0>;
@@ -162,6 +227,7 @@
 	};
 };
 
+/* NAND 闪存（256 MiB 全盘用作 rootfs） */
 &qpic_nand {
 	status = "okay";
 
@@ -184,18 +250,30 @@
 	};
 };
 
+/* eMMC HS400 */
 &sdhc_1 {
 	status = "okay";
+	non-removable;
 	mmc-ddr-1_8v;
 	mmc-hs200-1_8v;
 	mmc-hs400-1_8v;
 	max-frequency = <192000000>;
 };
 
+/* SD 卡槽 */
+&sdhc_2 {
+	status = "okay";
+	pinctrl-0 = <&sd_pins>;
+	pinctrl-names = "default";
+	cd-gpios = <&tlmm 63 GPIO_ACTIVE_LOW>;
+	vqmmc-supply = <&l11>;
+};
+
 &qusb_phy_0 { status = "okay"; };
 &ssphy_0 { status = "okay"; };
 &usb_0 { status = "okay"; };
 
+/* MDIO 和 PHY */
 &mdio {
 	status = "okay";
 	pinctrl-0 = <&mdio_pins>;
@@ -249,6 +327,7 @@
 
 &edma { status = "okay"; };
 
+/* 网络接口 */
 &dp1 {
 	status = "okay";
 	phy-mode = "qsgmii";
@@ -277,7 +356,22 @@
 	label = "wan";
 };
 
+/* Wi-Fi */
 &wifi {
 	status = "okay";
 	qcom,ath11k-calibration-variant = "Salvage-1";
+};
+
+/* PCIe 控制器 */
+&pcie_qmp0 { status = "okay"; };
+&pcie_qmp1 { status = "okay"; };
+
+&pcie0 {
+	status = "okay";
+	perst-gpios = <&tlmm 58 GPIO_ACTIVE_LOW>;
+};
+
+&pcie1 {
+	status = "okay";
+	perst-gpios = <&tlmm 62 GPIO_ACTIVE_HIGH>;
 };
