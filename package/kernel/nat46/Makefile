@@ -22,8 +22,9 @@ define KernelPackage/nat46
   SECTION:=kernel
   SUBMENU:=Network Support
 ifneq ($(CONFIG_PACKAGE_kmod-nat46),)
-  FILES:=$(PKG_BUILD_DIR)/nat46/modules/nat46.ko
-  AUTOLOAD:=$(call AutoLoad,33,nat46)
+  FILES:=$(PKG_BUILD_DIR)/nat46/modules/nat46.ko \
+         $(LINUX_DIR)/net/ipv6/netfilter/nf_defrag_ipv6.ko
+  AUTOLOAD:=$(call AutoLoad,33,nf_defrag_ipv6 nat46)
 endif
 endef
 
