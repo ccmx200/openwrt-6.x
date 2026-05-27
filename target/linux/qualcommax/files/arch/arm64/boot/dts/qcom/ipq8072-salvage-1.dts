@@ -8,7 +8,6 @@
 #include "ipq8074-ess.dtsi"
 #include "ipq8074-nss.dtsi"
 #include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
 
 / {
@@ -29,13 +28,63 @@
 		bootargs-append = " root=/dev/ubiblock0_1";
 	};
 
-	keys {
-		compatible = "gpio-keys";
+	/* 原厂定义的 LED */
+	leds {
+		compatible = "gpio-leds";
 
-		reset {
-			label = "reset";
-			gpios = <&tlmm 34 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_RESTART>;
+		led_sys_r: SYS_R {
+			label = "SYS_R";
+			gpios = <&tlmm 30 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_sys_g: SYS_G {
+			label = "SYS_G";
+			gpios = <&tlmm 54 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_5g_r: 5G_R {
+			label = "5G_R";
+			gpios = <&tlmm 51 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_5g_g: 5G_G {
+			label = "5G_G";
+			gpios = <&tlmm 19 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_5g_b: 5G_B {
+			label = "5G_B";
+			gpios = <&tlmm 29 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_rssi_r: RSSI_R {
+			label = "RSSI_R";
+			gpios = <&tlmm 55 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_rssi_g: RSSI_G {
+			label = "RSSI_G";
+			gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_rssi_b: RSSI_B {
+			label = "RSSI_B";
+			gpios = <&tlmm 50 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_heartbeat: led_heartbeat {
+			label = "led_heartbeat";
+			gpios = <&tlmm 20 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+			default-state = "on";
 		};
 	};
 };
@@ -54,7 +103,7 @@
 			drive-strength = <8>;
 			bias-pull-up;
 		};
-		/* WLAN 射频使能，原厂 DTS 的 mux_2，必须上拉 */
+		/* GPIO25 设为上拉，原厂用作 PHY 辅助控制，不可强制输出 */
 		wlan_en {
 			pins = "gpio25";
 			function = "gpio";
@@ -97,14 +146,6 @@
 			bias-pull-down;
 		};
 	};
-
-	/* GPIO25 强制输出高，确保 Wi-Fi 始终使能 */
-	wlan_en_hog: wlan-en-hog {
-		gpio-hog;
-		gpios = <25 GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "wlan-en";
-	};
 };
 
 &blsp1_uart5 { status = "okay"; };
@@ -113,7 +154,7 @@
 &crypto { status = "okay"; };
 &qpic_bam { status = "okay"; };
 
-/* SPI NOR 闪存（8 MiB） */
+/* SPI NOR 闪存 */
 &blsp1_spi1 {
 	status = "okay";
 	pinctrl-0 = <&spi1_pins>;
@@ -129,100 +170,42 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 
-			partition@0 {
-				label = "0:SBL1";
-				reg = <0x0 0x50000>;
-				read-only;
-			};
-			partition@50000 {
-				label = "0:MIBIB";
-				reg = <0x50000 0x10000>;
-				read-only;
-			};
-			partition@60000 {
-				label = "0:BOOTCONFIG";
-				reg = <0x60000 0x20000>;
-				read-only;
-			};
-			partition@80000 {
-				label = "0:BOOTCONFIG1";
-				reg = <0x80000 0x20000>;
-				read-only;
-			};
-			partition@a0000 {
-				label = "0:QSEE";
-				reg = <0xa0000 0x180000>;
-				read-only;
-			};
-			partition@220000 {
-				label = "0:QSEE_1";
-				reg = <0x220000 0x180000>;
-				read-only;
-			};
-			partition@3a0000 {
-				label = "0:DEVCFG";
-				reg = <0x3a0000 0x10000>;
-				read-only;
-			};
-			partition@3b0000 {
-				label = "0:DEVCFG_1";
-				reg = <0x3b0000 0x10000>;
-				read-only;
-			};
-			partition@3c0000 {
-				label = "0:APDP";
-				reg = <0x3c0000 0x10000>;
-				read-only;
-			};
-			partition@3d0000 {
-				label = "0:APDP_1";
-				reg = <0x3d0000 0x10000>;
-				read-only;
-			};
-			partition@3e0000 {
-				label = "0:RPM";
-				reg = <0x3e0000 0x40000>;
-				read-only;
-			};
-			partition@420000 {
-				label = "0:RPM_1";
-				reg = <0x420000 0x40000>;
-				read-only;
-			};
-			partition@460000 {
-				label = "0:CDT";
-				reg = <0x460000 0x10000>;
-				read-only;
-			};
-			partition@470000 {
-				label = "0:CDT_1";
-				reg = <0x470000 0x10000>;
-				read-only;
-			};
-			partition@480000 {
-				label = "0:APPSBLENV";
-				reg = <0x480000 0x10000>;
-			};
-			partition@490000 {
-				label = "0:APPSBL";
-				reg = <0x490000 0xa0000>;
-				read-only;
-			};
-			partition@530000 {
-				label = "0:APPSBL_1";
-				reg = <0x530000 0xa0000>;
-				read-only;
-			};
+			partition@0 { label = "0:SBL1"; reg = <0x0 0x50000>; read-only; };
+			partition@50000 { label = "0:MIBIB"; reg = <0x50000 0x10000>; read-only; };
+			partition@60000 { label = "0:BOOTCONFIG"; reg = <0x60000 0x20000>; read-only; };
+			partition@80000 { label = "0:BOOTCONFIG1"; reg = <0x80000 0x20000>; read-only; };
+			partition@a0000 { label = "0:QSEE"; reg = <0xa0000 0x180000>; read-only; };
+			partition@220000 { label = "0:QSEE_1"; reg = <0x220000 0x180000>; read-only; };
+			partition@3a0000 { label = "0:DEVCFG"; reg = <0x3a0000 0x10000>; read-only; };
+			partition@3b0000 { label = "0:DEVCFG_1"; reg = <0x3b0000 0x10000>; read-only; };
+			partition@3c0000 { label = "0:APDP"; reg = <0x3c0000 0x10000>; read-only; };
+			partition@3d0000 { label = "0:APDP_1"; reg = <0x3d0000 0x10000>; read-only; };
+			partition@3e0000 { label = "0:RPM"; reg = <0x3e0000 0x40000>; read-only; };
+			partition@420000 { label = "0:RPM_1"; reg = <0x420000 0x40000>; read-only; };
+			partition@460000 { label = "0:CDT"; reg = <0x460000 0x10000>; read-only; };
+			partition@470000 { label = "0:CDT_1"; reg = <0x470000 0x10000>; read-only; };
+			partition@480000 { label = "0:APPSBLENV"; reg = <0x480000 0x10000>; };
+			partition@490000 { label = "0:APPSBL"; reg = <0x490000 0xa0000>; read-only; };
+			partition@530000 { label = "0:APPSBL_1"; reg = <0x530000 0xa0000>; read-only; };
+
 			partition@5d0000 {
 				label = "0:ART";
 				reg = <0x5d0000 0x40000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_dp1: macaddr@0 { reg = <0x0 0x6>; };
+					macaddr_dp2: macaddr@6 { reg = <0x6 0x6>; };
+					macaddr_dp3: macaddr@c { reg = <0xc 0x6>; };
+					macaddr_dp5: macaddr@18 { reg = <0x18 0x6>; };
+				};
 			};
-			partition@610000 {
-				label = "0:ETHPHYFW";
-				reg = <0x610000 0x80000>;
-				read-only;
-			};
+
+			partition@610000 { label = "0:ETHPHYFW"; reg = <0x610000 0x80000>; read-only; };
 		};
 	};
 };
@@ -327,12 +310,14 @@
 
 &edma { status = "okay"; };
 
-/* 网络接口 */
+/* 网络接口 (MAC 地址来自 ART) */
 &dp1 {
 	status = "okay";
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_0>;
 	label = "lan3";
+	nvmem-cells = <&macaddr_dp1>;
+	nvmem-cell-names = "mac-address";
 };
 
 &dp2 {
@@ -340,6 +325,8 @@
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_1>;
 	label = "lan2";
+	nvmem-cells = <&macaddr_dp2>;
+	nvmem-cell-names = "mac-address";
 };
 
 &dp3 {
@@ -347,6 +334,8 @@
 	phy-mode = "qsgmii";
 	phy-handle = <&qca8075_2>;
 	label = "lan1";
+	nvmem-cells = <&macaddr_dp3>;
+	nvmem-cell-names = "mac-address";
 };
 
 &dp5 {
@@ -354,6 +343,8 @@
 	phy-mode = "sgmii";
 	phy-handle = <&qca8081>;
 	label = "wan";
+	nvmem-cells = <&macaddr_dp5>;
+	nvmem-cell-names = "mac-address";
 };
 
 /* Wi-Fi */
@@ -373,5 +364,5 @@
 
 &pcie1 {
 	status = "okay";
-	perst-gpios = <&tlmm 62 GPIO_ACTIVE_HIGH>;
+	perst-gpios = <&tlmm 61 GPIO_ACTIVE_LOW>;
 };
