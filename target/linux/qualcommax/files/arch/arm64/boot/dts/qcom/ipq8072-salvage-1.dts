@@ -8,6 +8,8 @@
 #include "ipq8074-ess.dtsi"
 #include "ipq8074-nss.dtsi"
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "Salvage-1";
@@ -35,6 +37,81 @@
 		regulator-always-on;
 		gpios = <&tlmm 21 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
+	};
+
+	/* 原厂 WPS 按键 */
+	gpio_keys {
+		compatible = "gpio-keys";
+		pinctrl-0 = <&button_pins>;
+		pinctrl-names = "default";
+
+		wps {
+			label = "wps";
+			gpios = <&tlmm 34 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+			debounce-interval = <60>;
+		};
+	};
+
+	/* 原厂 LED */
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-0 = <&led_pins>;
+		pinctrl-names = "default";
+
+		led_heartbeat: led_heartbeat {
+			label = "led_heartbeat";
+			gpios = <&tlmm 20 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+		};
+
+		led_sys_r: SYS_R {
+			label = "SYS_R";
+			gpios = <&tlmm 30 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_sys_g: SYS_G {
+			label = "SYS_G";
+			gpios = <&tlmm 54 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_5g_r: 5G_R {
+			label = "5G_R";
+			gpios = <&tlmm 51 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_5g_g: 5G_G {
+			label = "5G_G";
+			gpios = <&tlmm 19 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_5g_b: 5G_B {
+			label = "5G_B";
+			gpios = <&tlmm 29 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_rssi_r: RSSI_R {
+			label = "RSSI_R";
+			gpios = <&tlmm 55 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_rssi_g: RSSI_G {
+			label = "RSSI_G";
+			gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led_rssi_b: RSSI_B {
+			label = "RSSI_B";
+			gpios = <&tlmm 50 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
 	};
 };
 
@@ -92,15 +169,100 @@
 			bias-pull-up;
 		};
 	};
+
+	/* PCIe0 引脚 */
+	pcie0_pins: pcie0-pins {
+		pcie0_rst {
+			pins = "gpio58";
+			function = "pcie0_rst";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		pcie0_wake {
+			pins = "gpio59";
+			function = "pcie0_wake";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+	};
+
+	/* 原厂按键引脚 */
+	button_pins: button-pins {
+		wps_button {
+			pins = "gpio34";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+	};
+
+	/* 原厂 LED 引脚 */
+	led_pins: led-pins {
+		led_heartbeat {
+			pins = "gpio20";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		SYS_R {
+			pins = "gpio30";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		SYS_G {
+			pins = "gpio54";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		5G_R {
+			pins = "gpio51";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		5G_G {
+			pins = "gpio19";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		5G_B {
+			pins = "gpio29";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		RSSI_R {
+			pins = "gpio55";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		RSSI_G {
+			pins = "gpio56";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+		RSSI_B {
+			pins = "gpio50";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+	};
 };
 
+/* 基础外设 */
 &blsp1_uart5 { status = "okay"; };
 &prng { status = "okay"; };
 &cryptobam { status = "okay"; };
 &crypto { status = "okay"; };
 &qpic_bam { status = "okay"; };
 
-/* SPI NOR Flash */
+/* SPI NOR */
 &blsp1_spi1 {
 	status = "okay";
 	pinctrl-0 = <&spi1_pins>;
@@ -139,7 +301,7 @@
 	};
 };
 
-/* NAND Flash */
+/* NAND */
 &qpic_nand {
 	status = "okay";
 
@@ -162,7 +324,7 @@
 	};
 };
 
-/* eMMC HS400 */
+/* eMMC */
 &sdhc_1 {
 	status = "okay";
 	non-removable;
@@ -180,7 +342,7 @@
 	vqmmc-supply = <&vqmmc_sd_reg>;
 };
 
-/* USB */
+/* 双 USB */
 &qusb_phy_0 { status = "okay"; };
 &ssphy_0 { status = "okay"; };
 &usb_0 { status = "okay"; };
@@ -188,6 +350,20 @@
 &qusb_phy_1 { status = "okay"; };
 &ssphy_1 { status = "okay"; };
 &usb_1 { status = "okay"; };
+
+/* ========== PCIe 全部启用 ========== */
+&pcie_qmp0 { status = "okay"; };
+&pcie_qmp1 { status = "okay"; };
+
+&pcie0 {
+	status = "okay";
+	perst-gpios = <&tlmm 58 GPIO_ACTIVE_LOW>;
+};
+
+&pcie1 {
+	status = "okay";
+	perst-gpios = <&tlmm 61 GPIO_ACTIVE_LOW>;
+};
 
 /* MDIO 和 PHY */
 &mdio {
@@ -277,9 +453,3 @@
 	status = "okay";
 	qcom,ath11k-calibration-variant = "Salvage-1";
 };
-
-/* PCIe 全部禁用 */
-&pcie_qmp0 { status = "disabled"; };
-&pcie_qmp1 { status = "disabled"; };
-&pcie0 { status = "disabled"; };
-&pcie1 { status = "disabled"; };
